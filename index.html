@@ -1,0 +1,664 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>АвтоПарк-Контроль — Информационная система управления эксплуатацией автотранспорта</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/fleet.css">
+</head>
+<body>
+
+  <!-- SVG Global Icons Sprite (согласно 07_uikit_and_states.svg) -->
+  <svg style="display: none;" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="icon-brand-logo" viewBox="0 0 44 44">
+      <rect width="44" height="44" rx="10" fill="#1B4D3E"/>
+      <path d="M11 29l6-15h10l6 15M15 23h14" fill="none" stroke="#F3F1EC" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="37" cy="8" r="4.5" fill="#C2410C"/>
+    </symbol>
+
+    <symbol id="icon-nav-fleet" viewBox="0 0 24 24">
+      <path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM6 17a2 2 0 100-4 2 2 0 000 4zM17 17a2 2 0 100-4 2 2 0 000 4z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-nav-drivers" viewBox="0 0 24 24">
+      <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c0-3.5 3.6-6 8-6s8 2.5 8 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-nav-waybills" viewBox="0 0 24 24">
+      <path d="M6 3h9l4 4v14H6zM9 11h6M9 15h6M9 7h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-nav-maintenance" viewBox="0 0 24 24">
+      <path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.3 2.3-2-2z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-nav-reports" viewBox="0 0 24 24">
+      <path d="M4 20h16M7 16v-5M12 16V7M17 16v-8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-plus" viewBox="0 0 24 24">
+      <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="icon-download" viewBox="0 0 24 24">
+      <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="icon-refresh" viewBox="0 0 24 24">
+      <path d="M4 12a8 8 0 0114.93-4M20 4v4h-4M20 12a8 8 0 01-14.93 4M4 20v-4h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+
+  <div class="app-shell">
+    <!-- Боковая панель навигации (Sidebar) -->
+    <aside class="app-sidebar" aria-label="Боковое меню системы">
+      <div class="sidebar-brand">
+        <svg width="38" height="38" aria-hidden="true"><use href="#icon-brand-logo"/></svg>
+        <div class="brand-info">
+          <div class="brand-title">АВТОПАРК</div>
+          <div class="brand-sub">КОНТРОЛЬ · ERP</div>
+        </div>
+      </div>
+
+      <div class="nav-section-title">НАВИГАЦИЯ</div>
+
+      <nav class="sidebar-nav" aria-label="Разделы информационной системы">
+        <button type="button" class="nav-item nav-tab active" data-tab="vehicles">
+          <svg class="nav-icon" width="20" height="20"><use href="#icon-nav-fleet"/></svg>
+          <span>Автопарк (ТС)</span>
+          <span class="nav-counter" id="navVehiclesCount">6</span>
+        </button>
+
+        <button type="button" class="nav-item nav-tab" data-tab="drivers">
+          <svg class="nav-icon" width="20" height="20"><use href="#icon-nav-drivers"/></svg>
+          <span>Водители</span>
+          <span class="nav-counter" id="navDriversCount">5</span>
+        </button>
+
+        <button type="button" class="nav-item nav-tab" data-tab="waybills">
+          <svg class="nav-icon" width="20" height="20"><use href="#icon-nav-waybills"/></svg>
+          <span>Путевые листы</span>
+          <span class="nav-counter" id="navWaybillsCount">3</span>
+        </button>
+
+        <button type="button" class="nav-item nav-tab" data-tab="maintenance">
+          <svg class="nav-icon" width="20" height="20"><use href="#icon-nav-maintenance"/></svg>
+          <span>ТО и ремонты</span>
+          <span class="nav-badge-warn" id="navMaintBadge">1</span>
+        </button>
+
+        <button type="button" class="nav-item nav-tab" data-tab="analytics">
+          <svg class="nav-icon" width="20" height="20"><use href="#icon-nav-reports"/></svg>
+          <span>Аналитика и ГСМ</span>
+        </button>
+      </nav>
+
+      <!-- Виджет смены -->
+      <div class="sidebar-shift-card">
+        <div class="shift-status-row">
+          <span class="status-pulse-dot"></span>
+          <span class="shift-title">Смена активна</span>
+        </div>
+        <div class="shift-stats-text mono" id="sidebarShiftText">Готовность: 5 / 6 ТС (83%)</div>
+        <div class="shift-progress-track">
+          <div class="shift-progress-fill" id="sidebarShiftBar" style="width: 83%;"></div>
+        </div>
+      </div>
+
+      <!-- Профиль пользователя -->
+      <div class="sidebar-user-block">
+        <div class="user-info-row">
+          <div class="user-avatar">ПА</div>
+          <div class="user-meta">
+            <div class="user-name">Погорелов А.В.</div>
+            <div class="user-role">Диспетчер · 2 ИСиП Б</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Основная область -->
+    <div class="app-main">
+      <!-- Верхняя панель (Top Header) -->
+      <header class="app-top-header">
+        <div class="header-left">
+          <div>
+            <h1 class="header-page-title" id="headerPageTitle">Реестр транспортных средств</h1>
+            <p class="header-page-subtitle mono" id="headerPageSubtitle">АВТОПАРК-КОНТРОЛЬ · УФА · МОДУЛЬ УЧЁТА ТРАНСПОРТНЫХ СРЕДСТВ</p>
+          </div>
+        </div>
+
+        <div class="header-toolbar">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnExportJson" title="Выгрузить данные в формате JSON">
+            <svg width="15" height="15"><use href="#icon-download"/></svg>
+            <span>Экспорт JSON</span>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnResetData" title="Сбросить все разделы к заводскому состоянию">
+            <svg width="15" height="15"><use href="#icon-refresh"/></svg>
+            <span>Сброс данных</span>
+          </button>
+          <button type="button" class="btn btn-accent btn-sm" id="btnHeaderQuickWaybill" title="Быстрое оформление путевого листа">
+            <svg width="15" height="15"><use href="#icon-plus"/></svg>
+            <span>Оформить ПЛ</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Прокручиваемая рабочая область -->
+      <main class="screen-viewport">
+        <!-- SECTION 1: VEHICLES -->
+        <section class="tab-section active" id="section-vehicles">
+          <section class="kpi-grid" aria-label="Сводная статистика автопарка">
+            <article class="kpi-card kpi-dark">
+              <span class="kpi-label mono">ВСЕГО ТС В ПАРКЕ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big" id="statTotal">0</strong>
+                <span class="kpi-val-unit">ед.</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-success">Баланс АТП</span>
+              </div>
+            </article>
+
+            <article class="kpi-card">
+              <span class="kpi-label mono">СВОБОДНО НА БАЗЕ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-primary" id="statAvailable">0</strong>
+                <span class="kpi-val-unit">ТС</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-green">Готовы к рейсу</span>
+              </div>
+            </article>
+
+            <article class="kpi-card">
+              <span class="kpi-label mono">АКТИВНО В РЕЙСЕ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-dark" id="statInRoute">0</strong>
+                <span class="kpi-val-unit">ТС</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-note-text">На линии по ПЛ</span>
+              </div>
+            </article>
+
+            <article class="kpi-card kpi-border-accent">
+              <span class="kpi-label mono">НА ТЕХОБСЛУЖИВАНИИ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-accent" id="statInService">0</strong>
+                <span class="kpi-val-unit">ТС</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-warning">В ремзоне</span>
+              </div>
+            </article>
+
+            <article class="kpi-card">
+              <span class="kpi-label mono">ОБЩИЙ ПРОБЕГ ПАРКА</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-dark mono" style="font-size: 26px;" id="statMileage">0 км</strong>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-note-text">Одометры суммарно</span>
+              </div>
+            </article>
+          </section>
+
+          <section class="card card-panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Регистрация нового транспортного средства</h2>
+                <p class="panel-subtitle">Добавление единицы техники в реестр автотранспортного предприятия</p>
+              </div>
+            </div>
+            <form id="addVehicleForm" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="brandModel">Марка и модель *</label>
+                  <input class="form-control" type="text" id="brandModel" name="brandModel" placeholder="например, КАМАЗ 5490">
+                  <span class="error-hint" data-error="brandModel"></span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="plateNumber">Гос. номер *</label>
+                  <input class="form-control mono" type="text" id="plateNumber" name="plateNumber" placeholder="А123ВС 102">
+                  <span class="error-hint" data-error="plateNumber"></span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="year">Год выпуска *</label>
+                  <input class="form-control mono" type="number" id="year" name="year" placeholder="2022" min="1990" max="2027">
+                  <span class="error-hint" data-error="year"></span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="mileage">Пробег (км) *</label>
+                  <input class="form-control mono" type="number" id="mileage" name="mileage" placeholder="0" min="0">
+                  <span class="error-hint" data-error="mileage"></span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="status">Статус *</label>
+                  <select class="form-control" id="status" name="status">
+                    <option value="Свободен">Свободен</option>
+                    <option value="В рейсе">В рейсе</option>
+                    <option value="На ТО">На ТО</option>
+                  </select>
+                  <span class="error-hint" data-error="status"></span>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="lastServiceDate">Дата последнего ТО *</label>
+                  <input class="form-control mono" type="date" id="lastServiceDate" name="lastServiceDate">
+                  <span class="error-hint" data-error="lastServiceDate"></span>
+                </div>
+                <div class="form-actions">
+                  <button class="btn btn-primary" type="submit">
+                    <svg width="16" height="16"><use href="#icon-plus"/></svg>
+                    <span>Добавить ТС</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <section class="card card-panel table-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Реестр транспортных средств</h2>
+                <p class="panel-subtitle">Актуальный список автомобилей, статусы и пробег</p>
+              </div>
+              <div class="filter-bar">
+                <div class="search-input-wrap">
+                  <input class="form-control" type="text" id="searchInput" placeholder="Поиск по марке, модели или номеру...">
+                </div>
+                <select class="form-control" id="statusFilter" aria-label="Фильтр по статусу" style="width: auto; min-width: 170px;">
+                  <option value="all">Все статусы</option>
+                  <option value="Свободен">Свободен</option>
+                  <option value="В рейсе">В рейсе</option>
+                  <option value="На ТО">На ТО</option>
+                </select>
+                <button class="btn btn-secondary" type="button" id="resetFiltersBtn">Сбросить фильтры</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>МАРКА И МОДЕЛЬ</th>
+                    <th>ГОСНОМЕР</th>
+                    <th>ГОД</th>
+                    <th>ПРОБЕГ</th>
+                    <th>ПОСЛЕДНЕЕ ТО</th>
+                    <th>СТАТУС</th>
+                    <th>ДЕЙСТВИЯ</th>
+                  </tr>
+                </thead>
+                <tbody id="fleetTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <!-- SECTION 2: DRIVERS -->
+        <section class="tab-section" id="section-drivers">
+          <section class="kpi-grid kpi-grid-4">
+            <article class="kpi-card kpi-dark">
+              <span class="kpi-label mono">ВСЕГО ВОДИТЕЛЕЙ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big" id="driverStatTotal">0</strong>
+                <span class="kpi-val-unit">чел.</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-success">Штат АТП</span>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-label mono">НА ЛИНИИ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-primary" id="driverStatOnLine">0</strong>
+                <span class="kpi-val-unit">чел.</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-green">В смене</span>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-label mono">СВОБОДНЫ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-dark" id="driverStatAvailable">0</strong>
+                <span class="kpi-val-unit">чел.</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-note-text">Резерв смены</span>
+              </div>
+            </article>
+            <article class="kpi-card kpi-border-accent">
+              <span class="kpi-label mono">В ОТПУСКЕ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-accent" id="driverStatVacation">0</strong>
+                <span class="kpi-val-unit">чел.</span>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-warning">Не на линии</span>
+              </div>
+            </article>
+          </section>
+
+          <section class="card card-panel table-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Реестр водительского состава предприятия</h2>
+                <p class="panel-subtitle">Учёт водительских удостоверений, категорий, стажа и закреплённой техники</p>
+              </div>
+              <button type="button" class="btn btn-primary" id="btnOpenDriverModal">
+                <svg width="16" height="16"><use href="#icon-plus"/></svg>
+                <span>Добавить водителя</span>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ФИО ВОДИТЕЛЯ</th>
+                    <th>НОМЕР ВУ</th>
+                    <th>КАТЕГОРИИ</th>
+                    <th>СТАЖ</th>
+                    <th>ЗАКРЕПЛЁННЫЙ АВТОМОБИЛЬ</th>
+                    <th>СТАТУС</th>
+                  </tr>
+                </thead>
+                <tbody id="driversTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <!-- SECTION 3: WAYBILLS -->
+        <section class="tab-section" id="section-waybills">
+          <section class="card card-panel table-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Журнал регистрации путевых листов</h2>
+                <p class="panel-subtitle">Оформление рейсов и автоматический расчёт расхода ГСМ по норме (13 л / 100 км)</p>
+              </div>
+              <button type="button" class="btn btn-accent" id="btnOpenWaybillModal">
+                <svg width="16" height="16"><use href="#icon-plus"/></svg>
+                <span>Оформить путевой лист</span>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>№ ЛИСТА</th>
+                    <th>ДАТА</th>
+                    <th>ВОДИТЕЛЬ</th>
+                    <th>АВТОМОБИЛЬ</th>
+                    <th>МАРШРУТ ДВИЖЕНИЯ</th>
+                    <th>ПРОБЕГ СМЕНЫ</th>
+                    <th>РАСХОД ГСМ</th>
+                    <th>СТАТУС</th>
+                    <th>ДЕЙСТВИЯ</th>
+                  </tr>
+                </thead>
+                <tbody id="waybillsTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <!-- SECTION 4: MAINTENANCE -->
+        <section class="tab-section" id="section-maintenance">
+          <section class="card card-panel table-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Журнал технического обслуживания и ремонтов</h2>
+                <p class="panel-subtitle">Регламентные работы СТО, стоимость обслуживания и статус готовности ТС</p>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ДАТА РАБОТ</th>
+                    <th>АВТОМОБИЛЬ</th>
+                    <th>ВИД ТЕХОБСЛУЖИВАНИЯ / РЕМОНТА</th>
+                    <th>ИСПОЛНИТЕЛЬ (СТО)</th>
+                    <th>СТОИМОСТЬ РАБОТ</th>
+                    <th>СТАТУС</th>
+                  </tr>
+                </thead>
+                <tbody id="maintenanceTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <!-- SECTION 5: ANALYTICS -->
+        <section class="tab-section" id="section-analytics">
+          <section class="kpi-grid kpi-grid-3">
+            <article class="kpi-card kpi-dark">
+              <span class="kpi-label mono">ПРОБЕГ ПО ПУТЕВЫМ ЛИСТАМ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big mono" id="anTotalWbKm">0 км</strong>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-success">Учтённый рейсовый пробег</span>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-label mono">ИЗРАСХОДОВАНО ТОПЛИВА</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-primary mono" id="anTotalFuel">0 л</strong>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-note-text">Расчёт по норме расхода</span>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-label mono">ЗАТРАТЫ НА ГСМ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-dark mono" id="anFuelCost">0 ₽</strong>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-note-text">Тариф 62.50 ₽/л</span>
+              </div>
+            </article>
+            <article class="kpi-card kpi-border-accent">
+              <span class="kpi-label mono">ЗАТРАТЫ НА ТО И РЕМОНТ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-accent mono" id="anMaintCost">0 ₽</strong>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-warning">Сервисные акты СТО</span>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-label mono">СОВОКУПНЫЕ РАСХОДЫ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-dark mono" id="anTotalExpenses">0 ₽</strong>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-note-text">ГСМ + Техническое обслуживание</span>
+              </div>
+            </article>
+            <article class="kpi-card">
+              <span class="kpi-label mono">КОЭФФИЦИЕНТ ГОТОВНОСТИ</span>
+              <div class="kpi-value-wrap">
+                <strong class="kpi-val-big text-primary mono" id="anReadiness">0%</strong>
+              </div>
+              <div class="kpi-footer-row">
+                <span class="kpi-pill kpi-pill-green">Техническая исправность</span>
+              </div>
+            </article>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT VEHICLE -->
+  <div class="modal-backdrop" id="editVehicleModal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header-dark">
+        <div>
+          <div class="modal-badge-tag mono">КАРТОЧКА ТС · РЕДАКТИРОВАНИЕ</div>
+          <h3 class="modal-title" id="editModalTitle">Редактирование транспортного средства</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-dismiss="modal" aria-label="Закрыть">&times;</button>
+      </div>
+      <form id="editVehicleForm" novalidate>
+        <input type="hidden" name="id">
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label" for="editBrandModel">Марка и модель *</label>
+              <input class="form-control" type="text" id="editBrandModel" name="brandModel">
+              <span class="error-hint" data-error="brandModel"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editPlateNumber">Гос. номер *</label>
+              <input class="form-control mono" type="text" id="editPlateNumber" name="plateNumber">
+              <span class="error-hint" data-error="plateNumber"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editYear">Год выпуска *</label>
+              <input class="form-control mono" type="number" id="editYear" name="year">
+              <span class="error-hint" data-error="year"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editMileage">Пробег (км) *</label>
+              <input class="form-control mono" type="number" id="editMileage" name="mileage">
+              <span class="error-hint" data-error="mileage"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editStatus">Статус *</label>
+              <select class="form-control" id="editStatus" name="status">
+                <option value="Свободен">Свободен</option>
+                <option value="В рейсе">В рейсе</option>
+                <option value="На ТО">На ТО</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="editLastServiceDate">Дата последнего ТО *</label>
+              <input class="form-control mono" type="date" id="editLastServiceDate" name="lastServiceDate">
+              <span class="error-hint" data-error="lastServiceDate"></span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD WAYBILL -->
+  <div class="modal-backdrop" id="addWaybillModal" role="dialog" aria-modal="true" aria-labelledby="wbModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header-dark">
+        <div>
+          <div class="modal-badge-tag mono">НОВЫЙ ДОКУМЕНТ · ПУТЕВОЙ ЛИСТ</div>
+          <h3 class="modal-title" id="wbModalTitle">Оформление путевого листа</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-dismiss="modal" aria-label="Закрыть">&times;</button>
+      </div>
+      <form id="addWaybillForm" novalidate>
+        <div class="modal-body">
+          <div class="form-grid-1">
+            <div class="form-group">
+              <label class="form-label" for="wbDriverSelect">Водитель *</label>
+              <select class="form-control" id="wbDriverSelect" name="driverName"></select>
+              <span class="error-hint" data-error="driverName"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="wbVehicleSelect">Транспортное средство *</label>
+              <select class="form-control" id="wbVehicleSelect" name="vehiclePlate"></select>
+              <span class="error-hint" data-error="vehiclePlate"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="wbRoute">Маршрут следования *</label>
+              <input class="form-control" type="text" id="wbRoute" name="route" placeholder="например, База Уфа-Север → Стерлитамак">
+              <span class="error-hint" data-error="route"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="wbShiftMileage">Плановый пробег смены (км) *</label>
+              <input class="form-control mono" type="number" id="wbShiftMileage" name="shiftMileage" placeholder="120" min="1">
+              <span class="error-hint" data-error="shiftMileage"></span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Зарегистрировать ПЛ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD DRIVER -->
+  <div class="modal-backdrop" id="addDriverModal" role="dialog" aria-modal="true" aria-labelledby="driverModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header-dark">
+        <div>
+          <div class="modal-badge-tag mono">НОВЫЙ СОТРУДНИК · КАДРОВОЕ ОФОРМЛЕНИЕ</div>
+          <h3 class="modal-title" id="driverModalTitle">Добавление водителя в реестр</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-dismiss="modal" aria-label="Закрыть">&times;</button>
+      </div>
+      <form id="addDriverForm" novalidate>
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label" for="driverFullName">ФИО водителя *</label>
+              <input class="form-control" type="text" id="driverFullName" name="fullName" placeholder="например, Соколов Дмитрий Иванович">
+              <span class="error-hint" data-error="fullName"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="driverLicenseNumber">Номер ВУ *</label>
+              <input class="form-control mono" type="text" id="driverLicenseNumber" name="licenseNumber" placeholder="02 24 418920">
+              <span class="error-hint" data-error="licenseNumber"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="driverCategories">Категории ВУ *</label>
+              <input class="form-control mono" type="text" id="driverCategories" name="categories" placeholder="B, C">
+              <span class="error-hint" data-error="categories"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="driverExperience">Стаж вождения (лет) *</label>
+              <input class="form-control mono" type="number" id="driverExperience" name="experienceYears" placeholder="5" min="0" max="60">
+              <span class="error-hint" data-error="experienceYears"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="driverStatus">Статус *</label>
+              <select class="form-control" id="driverStatus" name="status">
+                <option value="Свободен">Свободен</option>
+                <option value="На линии">На линии</option>
+                <option value="В отпуске">В отпуске</option>
+              </select>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label class="form-label" for="driverAssignedVehicle">Закреплённый автомобиль</label>
+              <select class="form-control" id="driverAssignedVehicle" name="assignedVehicle"></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Добавить водителя</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="./js/data/fleetStore.js"></script>
+  <script src="./js/modules/fleetValidator.js"></script>
+  <script src="./js/modules/fleetService.js"></script>
+  <script src="./js/ui/fleetRenderer.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
