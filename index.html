@@ -109,15 +109,19 @@
         </div>
       </div>
 
-      <!-- Профиль пользователя -->
+      <!-- Профиль пользователя и контроль доступа -->
       <div class="sidebar-user-block">
         <div class="user-info-row">
-          <div class="user-avatar">ПА</div>
+          <div class="user-avatar" id="userAvatar">ПА</div>
           <div class="user-meta">
-            <div class="user-name">Погорелов А.В.</div>
-            <div class="user-role">Диспетчер · 2 ИСиП Б</div>
+            <div class="user-name" id="userName">Погорелов А.В.</div>
+            <div class="user-role" id="userRoleLabel">Диспетчер · 2 ИСиП Б</div>
           </div>
         </div>
+        <button type="button" class="user-security-btn" id="btnOpenSecurityModal">
+          <span>Права и СБ</span>
+          <span class="sec-role-pill mono" id="sidebarRoleBadge">Диспетчер</span>
+        </button>
       </div>
     </aside>
 
@@ -653,9 +657,63 @@
     </div>
   </div>
 
+  <!-- MODAL: SECURITY & ACCESS CONTROL -->
+  <div class="modal-backdrop" id="securityModal" role="dialog" aria-modal="true" aria-labelledby="securityModalTitle">
+    <div class="modal-dialog modal-dialog-wide">
+      <div class="modal-header-dark">
+        <div>
+          <div class="modal-badge-tag mono">БЕЗОПАСНОСТЬ И RBAC · КОНТРОЛЬ ДОСТУПА</div>
+          <h3 class="modal-title" id="securityModalTitle">Управление ролями и журнал безопасности</h3>
+        </div>
+        <button type="button" class="modal-close-btn" data-dismiss="modal" aria-label="Закрыть">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="sec-section">
+          <div class="sec-section-title">Выбор активной роли пользователя</div>
+          <div class="role-cards-grid" id="roleCardsGrid">
+            <button type="button" class="role-card" data-role="dispatcher">
+              <div class="role-card-title">Диспетчер</div>
+              <div class="role-card-desc">Оперативный учёт, ПЛ, редактирование. Без удаления ТС и сброса БД.</div>
+            </button>
+            <button type="button" class="role-card" data-role="admin">
+              <div class="role-card-title">Администратор</div>
+              <div class="role-card-desc">Полный доступ, включая удаление записей и сброс базы (PIN: 1234).</div>
+            </button>
+            <button type="button" class="role-card" data-role="viewer">
+              <div class="role-card-title">Наблюдатель</div>
+              <div class="role-card-desc">Режим «Только чтение» для аудита и просмотра аналитики.</div>
+            </button>
+          </div>
+          <div class="admin-pin-row" id="adminPinRow" style="display: none;">
+            <label class="form-label" for="adminPinInput">PIN-код администратора *</label>
+            <div class="pin-input-group">
+              <input class="form-control mono" type="password" id="adminPinInput" placeholder="Введите PIN (1234)" maxlength="10">
+              <button type="button" class="btn btn-primary btn-sm" id="btnConfirmAdminRole">Подтвердить</button>
+            </div>
+            <span class="error-hint" id="adminPinError"></span>
+          </div>
+        </div>
+
+        <div class="sec-section">
+          <div class="sec-section-title">Матрица прав текущей роли</div>
+          <div class="perm-list" id="securityPermList"></div>
+        </div>
+
+        <div class="sec-section">
+          <div class="sec-section-title">Журнал событий безопасности (последние записи)</div>
+          <div class="security-log-list" id="securityLogList"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="./js/data/fleetStore.js"></script>
+  <script src="./js/modules/fleetSecurity.js"></script>
   <script src="./js/modules/fleetValidator.js"></script>
   <script src="./js/modules/fleetService.js"></script>
   <script src="./js/ui/fleetRenderer.js"></script>

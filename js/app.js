@@ -1,5 +1,5 @@
-﻿(function (App) {
-  const { fleetService, fleetRenderer } = App;
+(function (App) {
+  const { fleetService, fleetRenderer, fleetSecurity } = App;
 
   let activeTab = 'vehicles';
 
@@ -46,12 +46,14 @@
   const addWaybillForm = document.getElementById('addWaybillForm');
   const addDriverModal = document.getElementById('addDriverModal');
   const addDriverForm = document.getElementById('addDriverForm');
+  const securityModal = document.getElementById('securityModal');
 
   const btnExportJson = document.getElementById('btnExportJson');
   const btnResetData = document.getElementById('btnResetData');
   const btnOpenWaybillModal = document.getElementById('btnOpenWaybillModal');
   const btnOpenDriverModal = document.getElementById('btnOpenDriverModal');
   const btnHeaderQuickWaybill = document.getElementById('btnHeaderQuickWaybill');
+  const btnOpenSecurityModal = document.getElementById('btnOpenSecurityModal');
 
   const navTabs = document.querySelectorAll('.nav-tab');
   const tabSections = document.querySelectorAll('.tab-section');
@@ -190,7 +192,10 @@
       const result = fleetService.addVehicle(payload);
 
       if (!result.success) {
-        fleetRenderer.renderFormErrors(addVehicleForm, result.errors);
+        if (result.message) {
+          fleetRenderer.showToast(result.message, 'error');
+        }
+        fleetRenderer.renderFormErrors(addVehicleForm, result.errors || {});
         return;
       }
 
@@ -207,7 +212,12 @@
       if (!select) return;
 
       const { id } = select.dataset;
-      fleetService.changeVehicleStatus(id, select.value);
+      const result = fleetService.changeVehicleStatus(id, select.value);
+      if (!result.success) {
+        refreshVehiclesUI();
+        fleetRenderer.showToast(result.message, 'error');
+        return;
+      }
       refreshVehiclesUI();
       fleetRenderer.showToast('Статус автомобиля обновлён', 'success');
     });
@@ -215,11 +225,20 @@
     fleetTableBody.addEventListener('click', (event) => {
       const deleteBtn = event.target.closest('button[data-action="delete"]');
       if (deleteBtn) {
+        if (fleetSecurity && !fleetSecurity.can('delete')) {
+          const denied = fleetService.deleteVehicle(deleteBtn.dataset.id);
+          fleetRenderer.showToast(denied.message, 'error');
+          return;
+        }
         const { id } = deleteBtn.dataset;
         const confirmed = window.confirm('Удалить выбранное транспортное средство из реестра?');
         if (!confirmed) return;
 
-        fleetService.deleteVehicle(id);
+        const result = fleetService.deleteVehicle(id);
+        if (!result.success) {
+          fleetRenderer.showToast(result.message, 'error');
+          return;
+        }
         refreshVehiclesUI();
         fleetRenderer.showToast('Транспортное средство удалено', 'info');
         return;
@@ -253,7 +272,10 @@
 
       const result = fleetService.updateVehicle(id, payload);
       if (!result.success) {
-        fleetRenderer.renderFormErrors(editVehicleForm, result.errors);
+        if (result.message) {
+          fleetRenderer.showToast(result.message, 'error');
+        }
+        fleetRenderer.renderFormErrors(editVehicleForm, result.errors || {});
         return;
       }
 
@@ -271,7 +293,12 @@
       if (!select) return;
 
       const { id } = select.dataset;
-      fleetService.changeDriverStatus(id, select.value);
+      const result = fleetService.changeDriverStatus(id, select.value);
+      if (!result.success) {
+        refreshDriversUI();
+        fleetRenderer.showToast(result.message, 'error');
+        return;
+      }
       fleetRenderer.showToast(`Статус водителя изменён на «${select.value}»`, 'success');
     });
   }
@@ -299,7 +326,10 @@
 
       const result = fleetService.addDriver(payload);
       if (!result.success) {
-        fleetRenderer.renderFormErrors(addDriverForm, result.errors);
+        if (result.message) {
+          fleetRenderer.showToast(result.message, 'error');
+        }
+        fleetRenderer.renderFormErrors(addDriverForm, result.errors || {});
         return;
       }
 
@@ -317,7 +347,11 @@
     waybillsTableBody.addEventListener('click', (event) => {
       const closeBtn = event.target.closest('button[data-action="close-waybill"]');
       if (!closeBtn) return;
-      fleetService.closeWaybill(closeBtn.dataset.id);
+      const result = fleetService.closeWaybill(closeBtn.dataset.id);
+      if (!result.success) {
+        fleetRenderer.showToast(result.message, 'error');
+        return;
+      }
       refreshWaybillsUI();
       fleetRenderer.showToast('Путевой лист закрыт', 'success');
     });
@@ -353,7 +387,10 @@
 
       const result = fleetService.createWaybill(payload);
       if (!result.success) {
-        fleetRenderer.renderFormErrors(addWaybillForm, result.errors);
+        if (result.message) {
+          fleetRenderer.showToast(result.message, 'error');
+        }
+        fleetRenderer.renderFormErrors(addWaybillForm, result.errors || {});
         return;
       }
 
@@ -369,13 +406,14 @@
     if (editVehicleModal) editVehicleModal.classList.remove('visible');
     if (addWaybillModal) addWaybillModal.classList.remove('visible');
     if (addDriverModal) addDriverModal.classList.remove('visible');
+    if (securityModal) securityModal.classList.remove('visible');
   }
 
   document.querySelectorAll('[data-dismiss="modal"]').forEach((btn) => {
     btn.addEventListener('click', closeAllModals);
   });
 
-  [editVehicleModal, addWaybillModal, addDriverModal].forEach((modal) => {
+  [editVehicleModal, addWaybillModal, addDriverModal, securityModal].forEach((modal) => {
     if (!modal) return;
     modal.addEventListener('click', (event) => {
       if (event.target === modal) closeAllModals();
@@ -388,8 +426,12 @@
 
   if (btnExportJson) {
     btnExportJson.addEventListener('click', () => {
-      const data = fleetService.exportData();
-      const jsonStr = JSON.stringify(data, null, 2);
+      const result = fleetService.exportData();
+      if (!result.success) {
+        fleetRenderer.showToast(result.message, 'error');
+        return;
+      }
+      const jsonStr = JSON.stringify(result.data, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -403,15 +445,152 @@
 
   if (btnResetData) {
     btnResetData.addEventListener('click', () => {
+      if (fleetSecurity && !fleetSecurity.can('reset')) {
+        const denied = fleetService.resetAllData();
+        fleetRenderer.showToast(denied.message, 'error');
+        return;
+      }
       const confirmed = window.confirm('Сбросить данные всех разделов системы к исходному состоянию?');
       if (!confirmed) return;
 
-      fleetService.resetAllData();
+      const result = fleetService.resetAllData();
+      if (!result.success) {
+        fleetRenderer.showToast(result.message, 'error');
+        return;
+      }
       refreshActiveTab();
       fleetRenderer.showToast('База данных успешно возвращена к заводским настройкам', 'info');
     });
   }
 
+  function renderSecurityUI() {
+    if (!fleetSecurity) return;
+    const role = fleetSecurity.getCurrentRole();
+
+    const avatarEl = document.getElementById('userAvatar');
+    const nameEl = document.getElementById('userName');
+    const roleLabelEl = document.getElementById('userRoleLabel');
+    const roleBadgeEl = document.getElementById('sidebarRoleBadge');
+
+    if (avatarEl) avatarEl.textContent = role.initials;
+    if (nameEl) nameEl.textContent = role.user;
+    if (roleLabelEl) roleLabelEl.textContent = role.subtitle;
+    if (roleBadgeEl) roleBadgeEl.textContent = role.label;
+
+    document.querySelectorAll('.role-card').forEach((card) => {
+      card.classList.toggle('active', card.dataset.role === role.id);
+    });
+
+    const permList = document.getElementById('securityPermList');
+    if (permList) {
+      permList.innerHTML = Object.entries(fleetSecurity.PERMISSION_LABELS)
+        .map(([permKey, label]) => {
+          const ok = fleetSecurity.can(permKey);
+          return `
+            <div class="perm-item">
+              <span>${label}</span>
+              <span class="${ok ? 'perm-status-ok' : 'perm-status-no'}">${ok ? 'Разрешено' : 'Запрещено'}</span>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    const logList = document.getElementById('securityLogList');
+    if (logList) {
+      const entries = fleetSecurity.getAuditLog();
+      const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (ch) => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+      ));
+      logList.innerHTML = entries
+        .map((entry) => {
+          const isWarn = ['ACCESS_DENIED', 'FAILED_AUTH', 'XSS_BLOCKED', 'INTEGRITY_GUARD'].includes(entry.type);
+          return `
+            <div class="sec-log-row">
+              <span class="mono">${esc(entry.time)}</span>
+              <span class="sec-log-type mono ${isWarn ? 'is-warn' : ''}">${esc(entry.type)}</span>
+              <span>${esc(entry.message)}</span>
+            </div>
+          `;
+        })
+        .join('');
+    }
+  }
+
+  if (btnOpenSecurityModal && securityModal) {
+    btnOpenSecurityModal.addEventListener('click', () => {
+      const pinRow = document.getElementById('adminPinRow');
+      const pinErr = document.getElementById('adminPinError');
+      if (pinRow) pinRow.style.display = 'none';
+      if (pinErr) pinErr.textContent = '';
+      renderSecurityUI();
+      securityModal.classList.add('visible');
+    });
+  }
+
+  const roleCardsGrid = document.getElementById('roleCardsGrid');
+  if (roleCardsGrid && fleetSecurity) {
+    roleCardsGrid.addEventListener('click', (event) => {
+      const card = event.target.closest('.role-card');
+      if (!card) return;
+      const targetRole = card.dataset.role;
+      const pinRow = document.getElementById('adminPinRow');
+      const pinInput = document.getElementById('adminPinInput');
+      const pinErr = document.getElementById('adminPinError');
+
+      if (targetRole === 'admin' && fleetSecurity.getCurrentRole().id !== 'admin') {
+        if (pinRow) pinRow.style.display = 'block';
+        if (pinErr) pinErr.textContent = '';
+        if (pinInput) {
+          pinInput.value = '';
+          pinInput.focus();
+        }
+        return;
+      }
+
+      const currentRole = fleetSecurity.getCurrentRole();
+      if (targetRole === currentRole.id) {
+        fleetRenderer.showToast(`Роль «${currentRole.label}» уже активна`, 'info');
+        return;
+      }
+
+      if (pinRow) pinRow.style.display = 'none';
+      const res = fleetSecurity.switchRole(targetRole);
+      if (res.success) {
+        renderSecurityUI();
+        fleetRenderer.showToast(`Активная роль: ${res.role.label}`, 'success');
+      }
+    });
+  }
+
+  const btnConfirmAdminRole = document.getElementById('btnConfirmAdminRole');
+  const adminPinInput = document.getElementById('adminPinInput');
+  if (adminPinInput && btnConfirmAdminRole) {
+    adminPinInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        btnConfirmAdminRole.click();
+      }
+    });
+  }
+  if (btnConfirmAdminRole && fleetSecurity) {
+    btnConfirmAdminRole.addEventListener('click', () => {
+      const pinInput = document.getElementById('adminPinInput');
+      const pinErr = document.getElementById('adminPinError');
+      const pinRow = document.getElementById('adminPinRow');
+      const res = fleetSecurity.switchRole('admin', pinInput ? pinInput.value : '');
+      if (!res.success) {
+        if (pinErr) pinErr.textContent = res.message;
+        renderSecurityUI();
+        return;
+      }
+      if (pinRow) pinRow.style.display = 'none';
+      renderSecurityUI();
+      fleetRenderer.showToast(`Выполнен вход с правами: ${res.role.label}`, 'success');
+    });
+  }
+
+  renderSecurityUI();
   refreshVehiclesUI();
   refreshSidebarCounters();
 })(window.AutoPark = window.AutoPark || {});

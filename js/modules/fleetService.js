@@ -44,14 +44,20 @@
     },
 
     addVehicle(rawData) {
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('create', 'добавление ТС') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message, errors: {} };
+      }
+
       const validation = App.validateVehicle(rawData);
       if (!validation.isValid) {
         return { success: false, errors: validation.errors };
       }
 
+      const sanitize = App.fleetSecurity ? App.fleetSecurity.sanitizeText : (v) => String(v || '').trim();
       const created = App.fleetStore.add({
-        brandModel: rawData.brandModel.trim(),
-        plateNumber: rawData.plateNumber.trim().toUpperCase(),
+        brandModel: sanitize(rawData.brandModel),
+        plateNumber: sanitize(rawData.plateNumber).toUpperCase(),
         year: Number(rawData.year),
         mileage: Number(rawData.mileage),
         status: rawData.status || 'Свободен',
@@ -62,14 +68,20 @@
     },
 
     updateVehicle(id, rawData) {
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('edit', 'редактирование ТС') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message, errors: {} };
+      }
+
       const validation = App.validateVehicle(rawData, true);
       if (!validation.isValid) {
         return { success: false, errors: validation.errors };
       }
 
+      const sanitize = App.fleetSecurity ? App.fleetSecurity.sanitizeText : (v) => String(v || '').trim();
       const updated = App.fleetStore.update(id, {
-        brandModel: rawData.brandModel.trim(),
-        plateNumber: rawData.plateNumber.trim().toUpperCase(),
+        brandModel: sanitize(rawData.brandModel),
+        plateNumber: sanitize(rawData.plateNumber).toUpperCase(),
         year: Number(rawData.year),
         mileage: Number(rawData.mileage),
         status: rawData.status,
@@ -80,11 +92,25 @@
     },
 
     changeVehicleStatus(id, status) {
-      return App.fleetStore.updateStatus(id, status);
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('status', 'изменение статуса ТС') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message };
+      }
+      return { success: true, vehicle: App.fleetStore.updateStatus(id, status) };
     },
 
     deleteVehicle(id) {
-      return App.fleetStore.remove(id);
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('delete', 'удаление ТС из реестра') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message };
+      }
+      const existing = App.fleetStore.getById(id);
+      if (existing && existing.status === 'В рейсе') {
+        const msg = `Запрещено удаление ТС «${existing.brandModel}» (${existing.plateNumber}): автомобиль находится в рейсе`;
+        if (App.fleetSecurity) App.fleetSecurity.logEvent('INTEGRITY_GUARD', msg);
+        return { success: false, message: msg };
+      }
+      return { success: true, removed: App.fleetStore.remove(id) };
     },
 
     getVehicleById(id) {
@@ -97,19 +123,29 @@
     },
 
     changeDriverStatus(id, status) {
-      return App.fleetStore.updateDriverStatus(id, status);
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('status', 'изменение статуса водителя') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message };
+      }
+      return { success: true, driver: App.fleetStore.updateDriverStatus(id, status) };
     },
 
     addDriver(rawData) {
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('create', 'добавление водителя') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message, errors: {} };
+      }
+
       const validation = App.validateDriver(rawData);
       if (!validation.isValid) {
         return { success: false, errors: validation.errors };
       }
 
+      const sanitize = App.fleetSecurity ? App.fleetSecurity.sanitizeText : (v) => String(v || '').trim();
       const created = App.fleetStore.addDriver({
-        fullName: rawData.fullName.trim(),
-        licenseNumber: rawData.licenseNumber.trim(),
-        categories: rawData.categories.trim().toUpperCase(),
+        fullName: sanitize(rawData.fullName),
+        licenseNumber: sanitize(rawData.licenseNumber),
+        categories: sanitize(rawData.categories).toUpperCase(),
         experienceYears: Number(rawData.experienceYears),
         assignedVehicle: rawData.assignedVehicle || 'Не закреплён',
         status: rawData.status || 'Свободен'
@@ -124,6 +160,11 @@
     },
 
     createWaybill(data) {
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('create', 'оформление путевого листа') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message, errors: {} };
+      }
+
       const validation = App.validateWaybill(data);
       if (!validation.isValid) {
         return { success: false, errors: validation.errors };
@@ -131,11 +172,12 @@
 
       const km = Number(data.shiftMileage);
       const fuel = Math.round((km * 0.13) * 10) / 10;
+      const sanitize = App.fleetSecurity ? App.fleetSecurity.sanitizeText : (v) => String(v || '').trim();
 
       const created = App.fleetStore.addWaybill({
         driverName: data.driverName,
         vehiclePlate: data.vehiclePlate,
-        route: data.route.trim(),
+        route: sanitize(data.route),
         shiftMileage: km,
         fuelUsed: fuel
       });
@@ -144,7 +186,17 @@
     },
 
     closeWaybill(id) {
-      return App.fleetStore.closeWaybill(id);
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('status', 'закрытие путевого листа') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message };
+      }
+      const existing = App.fleetStore.getWaybills().find((w) => String(w.id) === String(id));
+      if (existing && existing.status === 'Закрыт') {
+        const msg = `Путевой лист ${existing.number} уже закрыт`;
+        if (App.fleetSecurity) App.fleetSecurity.logEvent('INTEGRITY_GUARD', msg);
+        return { success: false, message: msg };
+      }
+      return { success: true, waybill: App.fleetStore.closeWaybill(id) };
     },
 
     // --- MAINTENANCE ---
@@ -174,11 +226,20 @@
     },
 
     resetAllData() {
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('reset', 'полный сброс базы данных') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message };
+      }
       App.fleetStore.resetAll();
+      return { success: true };
     },
 
     exportData() {
-      return App.fleetStore.exportData();
+      const guard = App.fleetSecurity ? App.fleetSecurity.requirePermission('export', 'экспорт резервной копии JSON') : { allowed: true };
+      if (!guard.allowed) {
+        return { success: false, message: guard.message };
+      }
+      return { success: true, data: App.fleetStore.exportData() };
     }
   };
 })(window.AutoPark = window.AutoPark || {});
